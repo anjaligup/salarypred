@@ -1,0 +1,1570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Hire Base Pay Prediction Model — Executive Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
+<style>
+  /* ── TOKENS ─────────────────────────────────────────────────────── */
+  :root {
+    --navy:       #0B1F3A;
+    --navy-mid:   #152d50;
+    --navy-light: #1e3d6e;
+    --gold:       #C9A84C;
+    --gold-light: #e8c96d;
+    --off-white:  #F7F8FA;
+    --slate:      #4A5568;
+    --slate-light:#718096;
+    --border:     #E2E8F0;
+    --green:      #22863a;
+    --green-bg:   #f0faf3;
+    --red:        #c0392b;
+    --red-bg:     #fdf2f2;
+    --amber:      #d97706;
+    --amber-bg:   #fffbeb;
+    --white:      #ffffff;
+    --shadow:     0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+    --shadow-lg:  0 8px 32px rgba(11,31,58,.12);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--off-white);
+    color: var(--navy);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ── HEADER ──────────────────────────────────────────────────────── */
+  .site-header {
+    background: var(--navy);
+    padding: 0 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 2px solid var(--gold);
+  }
+  .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .header-logo {
+    width: 36px; height: 36px;
+    background: var(--gold);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Playfair Display', serif;
+    font-size: 18px; font-weight: 700;
+    color: var(--navy);
+  }
+  .header-title {
+    color: var(--white);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .header-subtitle {
+    color: var(--gold);
+    font-size: 11px;
+    font-weight: 300;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  .header-meta {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .header-tag {
+    color: rgba(255,255,255,.5);
+    font-size: 11px;
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: .04em;
+  }
+  .upload-btn {
+    background: var(--gold);
+    color: var(--navy);
+    border: none;
+    padding: 8px 18px;
+    border-radius: 4px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .upload-btn:hover { background: var(--gold-light); }
+  #file-input { display: none; }
+
+  /* ── LAYOUT ──────────────────────────────────────────────────────── */
+  .page { max-width: 1400px; margin: 0 auto; padding: 40px 48px 80px; }
+
+  /* ── HERO / LANDING ──────────────────────────────────────────────── */
+  #landing {
+    min-height: calc(100vh - 64px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 60px 48px;
+  }
+  .landing-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 20px;
+  }
+  .landing-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(36px, 5vw, 58px);
+    font-weight: 700;
+    color: var(--navy);
+    line-height: 1.1;
+    max-width: 720px;
+    margin-bottom: 20px;
+  }
+  .landing-title em {
+    font-style: normal;
+    color: var(--gold);
+  }
+  .landing-desc {
+    color: var(--slate);
+    font-size: 16px;
+    font-weight: 300;
+    max-width: 560px;
+    margin-bottom: 48px;
+    line-height: 1.8;
+  }
+  .landing-upload-area {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 48px 64px;
+    background: var(--white);
+    cursor: pointer;
+    transition: border-color .2s, box-shadow .2s;
+    max-width: 480px;
+    width: 100%;
+  }
+  .landing-upload-area:hover {
+    border-color: var(--gold);
+    box-shadow: var(--shadow-lg);
+  }
+  .upload-icon {
+    font-size: 36px;
+    margin-bottom: 12px;
+  }
+  .upload-label {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--navy);
+    margin-bottom: 6px;
+  }
+  .upload-sub {
+    font-size: 12px;
+    color: var(--slate-light);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .landing-cols {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    max-width: 840px;
+    width: 100%;
+    margin-top: 48px;
+  }
+  .landing-col {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    text-align: left;
+  }
+  .landing-col-icon {
+    font-size: 22px;
+    margin-bottom: 10px;
+  }
+  .landing-col h3 {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .landing-col p {
+    font-size: 12px;
+    color: var(--slate);
+    line-height: 1.6;
+  }
+
+  /* ── DASHBOARD (hidden until data loaded) ────────────────────────── */
+  #dashboard { display: none; }
+
+  /* ── SECTION HEADERS ─────────────────────────────────────────────── */
+  .section-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 4px;
+  }
+  .section-desc {
+    color: var(--slate);
+    font-size: 13px;
+    font-weight: 300;
+    margin-bottom: 32px;
+  }
+  .section-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 48px 0;
+  }
+
+  /* ── KPI STRIP ───────────────────────────────────────────────────── */
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  .kpi-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px 24px 20px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--gold);
+  }
+  .kpi-card.green::before  { background: var(--green); }
+  .kpi-card.red::before    { background: var(--red); }
+  .kpi-card.amber::before  { background: var(--amber); }
+
+  .kpi-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--slate-light);
+    margin-bottom: 10px;
+  }
+  .kpi-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 32px;
+    font-weight: 500;
+    color: var(--navy);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .kpi-sub {
+    font-size: 11px;
+    color: var(--slate-light);
+  }
+  .kpi-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    margin-top: 4px;
+  }
+  .badge-green { background: var(--green-bg); color: var(--green); }
+  .badge-red   { background: var(--red-bg);   color: var(--red); }
+  .badge-amber { background: var(--amber-bg); color: var(--amber); }
+
+  /* ── ACCURACY RING ───────────────────────────────────────────────── */
+  .hero-metrics {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 24px;
+    margin-bottom: 40px;
+    align-items: center;
+  }
+  .ring-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 32px 24px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+  .ring-wrapper {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    margin: 0 auto 16px;
+  }
+  #accuracyRing { width: 160px; height: 160px; }
+  .ring-center {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+  .ring-pct {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 28px;
+    font-weight: 500;
+    color: var(--navy);
+    line-height: 1;
+  }
+  .ring-unit {
+    font-size: 10px;
+    color: var(--slate-light);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  .ring-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 4px;
+  }
+  .ring-sub {
+    font-size: 11px;
+    color: var(--slate-light);
+  }
+
+  /* ── CHART CARDS ─────────────────────────────────────────────────── */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+  .chart-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+  .chart-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+  }
+  .chart-card.full { grid-column: 1 / -1; }
+  .chart-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 4px;
+  }
+  .chart-sub {
+    font-size: 11px;
+    color: var(--slate-light);
+    margin-bottom: 20px;
+  }
+  .chart-area { position: relative; height: 240px; }
+  .chart-area.tall { height: 300px; }
+
+  /* ── FILTER BAR ──────────────────────────────────────────────────── */
+  .filter-bar {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 24px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow);
+  }
+  .filter-group { display: flex; flex-direction: column; gap: 4px; }
+  .filter-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--slate-light);
+  }
+  .filter-select, .filter-input {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    padding: 7px 12px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--off-white);
+    color: var(--navy);
+    min-width: 160px;
+    outline: none;
+  }
+  .filter-select:focus, .filter-input:focus { border-color: var(--gold); }
+  .filter-btn {
+    padding: 8px 18px;
+    background: var(--navy);
+    color: var(--white);
+    border: none;
+    border-radius: 4px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    letter-spacing: .04em;
+    transition: background .15s;
+  }
+  .filter-btn:hover { background: var(--navy-light); }
+  .filter-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--slate-light);
+    align-self: center;
+    margin-left: auto;
+  }
+
+  /* ── DATA TABLE ──────────────────────────────────────────────────── */
+  .table-wrap {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    margin-bottom: 24px;
+  }
+  .table-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .table-header-title {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .table-export-btn {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--navy);
+    background: var(--off-white);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 5px 12px;
+    cursor: pointer;
+    letter-spacing: .04em;
+  }
+  .table-scroll { overflow-x: auto; max-height: 480px; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead { position: sticky; top: 0; z-index: 2; }
+  thead th {
+    background: var(--navy);
+    color: rgba(255,255,255,.85);
+    font-weight: 500;
+    font-size: 10px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 11px 14px;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+  }
+  thead th:hover { background: var(--navy-light); }
+  thead th.sorted { color: var(--gold); }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+  tbody tr:hover { background: #f0f4ff; }
+  tbody td {
+    padding: 10px 14px;
+    white-space: nowrap;
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--slate);
+  }
+  tbody td.label-col {
+    font-family: 'IBM Plex Sans', sans-serif;
+    color: var(--navy);
+    font-weight: 500;
+  }
+  .variance-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .pill-green { background: var(--green-bg); color: var(--green); }
+  .pill-red   { background: var(--red-bg);   color: var(--red); }
+  .pill-amber { background: var(--amber-bg); color: var(--amber); }
+
+  /* ── METHODOLOGY SECTION ─────────────────────────────────────────── */
+  .method-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+  .method-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 28px;
+    box-shadow: var(--shadow);
+  }
+  .method-step {
+    display: flex;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .method-step:last-child { border-bottom: none; }
+  .step-num {
+    width: 28px; height: 28px;
+    background: var(--navy);
+    color: var(--gold);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .step-content h4 {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 3px;
+  }
+  .step-content p {
+    font-size: 12px;
+    color: var(--slate);
+    line-height: 1.6;
+  }
+  .spec-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .spec-row:last-child { border-bottom: none; }
+  .spec-key { color: var(--slate); font-weight: 500; }
+  .spec-val {
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--navy);
+    font-weight: 500;
+    text-align: right;
+  }
+
+  /* ── NAV TABS ────────────────────────────────────────────────────── */
+  .dash-nav {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 40px;
+  }
+  .nav-tab {
+    padding: 12px 24px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--slate);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: color .15s;
+    white-space: nowrap;
+  }
+  .nav-tab:hover { color: var(--navy); }
+  .nav-tab.active {
+    color: var(--navy);
+    border-bottom-color: var(--gold);
+    font-weight: 600;
+  }
+
+  /* ── INSIGHT CALLOUT ─────────────────────────────────────────────── */
+  .insight-box {
+    background: var(--navy);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .insight-icon { font-size: 20px; flex-shrink: 0; }
+  .insight-text { color: rgba(255,255,255,.8); font-size: 13px; line-height: 1.7; }
+  .insight-text strong { color: var(--gold); font-weight: 600; }
+
+  /* ── FOOTER ──────────────────────────────────────────────────────── */
+  .site-footer {
+    background: var(--navy);
+    color: rgba(255,255,255,.35);
+    font-size: 11px;
+    text-align: center;
+    padding: 20px;
+    letter-spacing: .04em;
+    border-top: 1px solid rgba(201,168,76,.3);
+  }
+
+  /* ── EMPTY STATE ─────────────────────────────────────────────────── */
+  .empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--slate-light);
+    font-size: 13px;
+  }
+
+  @media (max-width: 900px) {
+    .page { padding: 24px 20px; }
+    .site-header { padding: 0 20px; }
+    .chart-grid, .chart-grid-3, .method-grid, .hero-metrics { grid-template-columns: 1fr; }
+    .landing-cols { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════ HEADER -->
+<header class="site-header">
+  <div class="header-brand">
+    <div class="header-logo">FP</div>
+    <div>
+      <div class="header-title">FP&amp;A Intelligence Platform</div>
+      <div class="header-subtitle">New Hire Base Pay Prediction Model</div>
+    </div>
+  </div>
+  <div class="header-meta">
+    <span class="header-tag" id="header-date"></span>
+    <span class="header-tag" id="header-record-count"></span>
+    <button class="upload-btn" onclick="document.getElementById('file-input').click()">
+      Load Data ↑
+    </button>
+    <input type="file" id="file-input" accept=".xlsx,.xls,.csv">
+  </div>
+</header>
+
+<!-- ════════════════════════════════════════════════════════════════ LANDING -->
+<div id="landing">
+  <div class="landing-eyebrow">FP&amp;A · Workforce Analytics · Predictive Compensation</div>
+  <h1 class="landing-title">New Hire Base Pay<br><em>Prediction Dashboard</em></h1>
+  <p class="landing-desc">
+    Machine learning model trained on 2021–2025 filled requisitions.
+    Predicts base pay at the job code · compensation grade · location grain
+    with a target MAPE of ≤ 5%.
+  </p>
+  <div class="landing-upload-area" onclick="document.getElementById('file-input').click()">
+    <div class="upload-icon">📊</div>
+    <div class="upload-label">Load your model output file</div>
+    <div class="upload-sub">Excel (.xlsx / .xls) or CSV · model_predictions.xlsx</div>
+  </div>
+  <div class="landing-cols">
+    <div class="landing-col">
+      <div class="landing-col-icon">🎯</div>
+      <h3>Model Accuracy</h3>
+      <p>MAPE comparison of model predictions vs HR estimates against actuals, with variance analysis by country, grade, and job family.</p>
+    </div>
+    <div class="landing-col">
+      <div class="landing-col-icon">📋</div>
+      <h3>Requisition Drill-Down</h3>
+      <p>Searchable, filterable table of all open requisitions with side-by-side model vs HR estimates and historical pay ranges.</p>
+    </div>
+    <div class="landing-col">
+      <div class="landing-col-icon">⚙️</div>
+      <h3>Methodology</h3>
+      <p>Model architecture, training data summary, feature definitions, and validation approach — for technical governance review.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════ DASHBOARD -->
+<div id="dashboard">
+<div class="page">
+
+  <!-- NAV TABS -->
+  <nav class="dash-nav">
+    <div class="nav-tab active" onclick="showTab('overview')">Overview</div>
+    <div class="nav-tab" onclick="showTab('accuracy')">Model Accuracy</div>
+    <div class="nav-tab" onclick="showTab('requisitions')">Requisition Detail</div>
+    <div class="nav-tab" onclick="showTab('methodology')">Methodology</div>
+  </nav>
+
+  <!-- ══ TAB: OVERVIEW ═══════════════════════════════════════════════════ -->
+  <div id="tab-overview" class="tab-panel">
+    <div class="section-label">Executive Summary</div>
+    <div class="section-title">Prediction Model Performance</div>
+    <div class="section-desc">May – June open requisition cohort · Trained on 2021–2025 filled requisitions</div>
+
+    <!-- KPI strip -->
+    <div class="kpi-strip" id="kpi-strip"></div>
+
+    <!-- Hero: ring + insight -->
+    <div class="hero-metrics">
+      <div class="ring-card">
+        <div class="ring-wrapper">
+          <canvas id="accuracyRing"></canvas>
+          <div class="ring-center">
+            <div class="ring-pct" id="ring-pct">—</div>
+            <div class="ring-unit">MAPE</div>
+          </div>
+        </div>
+        <div class="ring-label">Model Accuracy</div>
+        <div class="ring-sub" id="ring-sub">vs ≤ 5% target threshold</div>
+      </div>
+      <div id="overview-insight" class="chart-card" style="padding:28px;">
+        <div class="chart-title" style="font-family:'Playfair Display',serif;font-size:18px;margin-bottom:16px;">Key Findings</div>
+        <div id="insight-list"></div>
+      </div>
+    </div>
+
+    <!-- Charts row 1 -->
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-title">Model vs HR Estimate vs Historical Average</div>
+        <div class="chart-sub">Scatter: predicted vs actual base pay per requisition</div>
+        <div class="chart-area"><canvas id="scatterChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Variance Distribution</div>
+        <div class="chart-sub">% difference between model prediction and HR estimate</div>
+        <div class="chart-area"><canvas id="varianceHistChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Charts row 2 -->
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-title">Prediction Accuracy by Compensation Grade</div>
+        <div class="chart-sub">Average absolute % error per grade band</div>
+        <div class="chart-area"><canvas id="gradeChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Records by Location</div>
+        <div class="chart-sub">Open requisition volume distribution</div>
+        <div class="chart-area"><canvas id="locationChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: ACCURACY ══════════════════════════════════════════════════ -->
+  <div id="tab-accuracy" class="tab-panel" style="display:none;">
+    <div class="section-label">Model Performance</div>
+    <div class="section-title">Accuracy Analysis</div>
+    <div class="section-desc">Breakdown of prediction error across dimensions</div>
+
+    <div class="insight-box">
+      <div class="insight-icon">💡</div>
+      <div class="insight-text" id="accuracy-insight-text">
+        Loading analysis…
+      </div>
+    </div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-title">MAPE by Compensation Grade</div>
+        <div class="chart-sub">Mean absolute percentage error — lower is better · red line = 5% target</div>
+        <div class="chart-area tall"><canvas id="mapeByGradeChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">MAPE by Location</div>
+        <div class="chart-sub">Mean absolute percentage error by geography</div>
+        <div class="chart-area tall"><canvas id="mapeByLocChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <div class="chart-title">Model vs HR Estimate: Absolute Error Comparison</div>
+        <div class="chart-sub">For each requisition, which predictor was closer to historical average?</div>
+        <div class="chart-area"><canvas id="modelVsHrChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Prediction Bias by Grade</div>
+        <div class="chart-sub">Avg signed % error — positive = model over-predicts, negative = under-predicts</div>
+        <div class="chart-area"><canvas id="biasChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- MAPE by job family -->
+    <div class="chart-card" style="margin-bottom:24px;">
+      <div class="chart-title">MAPE by Job Code (Top 20)</div>
+      <div class="chart-sub">Mean absolute % error per job code — sorted ascending</div>
+      <div class="chart-area tall"><canvas id="mapeByJobChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: REQUISITIONS ══════════════════════════════════════════════ -->
+  <div id="tab-requisitions" class="tab-panel" style="display:none;">
+    <div class="section-label">Requisition Detail</div>
+    <div class="section-title">Open Requisition Predictions</div>
+    <div class="section-desc">May – June cohort · All figures in local currency (USD unless noted)</div>
+
+    <div class="filter-bar">
+      <div class="filter-group">
+        <div class="filter-label">Compensation Grade</div>
+        <select class="filter-select" id="filter-grade" onchange="applyFilters()">
+          <option value="">All Grades</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">Location</div>
+        <select class="filter-select" id="filter-location" onchange="applyFilters()">
+          <option value="">All Locations</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">Job Code</div>
+        <select class="filter-select" id="filter-job" onchange="applyFilters()">
+          <option value="">All Job Codes</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">Variance &gt;</div>
+        <input type="number" class="filter-input" id="filter-variance" placeholder="e.g. 10" style="min-width:100px;" onchange="applyFilters()">
+      </div>
+      <button class="filter-btn" onclick="resetFilters()">Reset</button>
+      <div class="filter-count" id="filter-count"></div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-header">
+        <span class="table-header-title" id="table-header-title">Requisitions</span>
+        <button class="table-export-btn" onclick="exportTable()">Export CSV ↓</button>
+      </div>
+      <div class="table-scroll">
+        <table id="req-table">
+          <thead id="req-thead"></thead>
+          <tbody id="req-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: METHODOLOGY ═══════════════════════════════════════════════ -->
+  <div id="tab-methodology" class="tab-panel" style="display:none;">
+    <div class="section-label">Technical Reference</div>
+    <div class="section-title">Model Methodology</div>
+    <div class="section-desc">For finance governance, audit review, and methodology sign-off</div>
+
+    <div class="method-grid">
+      <div class="method-card">
+        <div class="chart-title" style="margin-bottom:20px;">How the Model Works</div>
+        <div class="method-step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <h4>Training Data</h4>
+            <p>Gradient boosting model trained on 2021–2025 filled requisitions. Outliers removed prior to training. Data segmented by country — each country receives its own model.</p>
+          </div>
+        </div>
+        <div class="method-step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <h4>Prediction Grain</h4>
+            <p>Predictions are made at the intersection of <strong>Job Code × Compensation Grade × Location</strong>. This is the finest grain at which historical pay patterns are statistically reliable.</p>
+          </div>
+        </div>
+        <div class="method-step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <h4>Feature Engineering</h4>
+            <p>Key model inputs: historical median pay per group, year-over-year pay trend, grade-level pay band, and requisition volume (data density signal). Log-transform applied to base pay to normalize the skewed salary distribution.</p>
+          </div>
+        </div>
+        <div class="method-step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <h4>Validation Approach</h4>
+            <p>Time-based split: trained on 2021–2024, validated on 2025. 2026 YTD held as out-of-sample test. Random cross-validation was intentionally avoided to prevent salary-level leakage across years.</p>
+          </div>
+        </div>
+        <div class="method-step">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <h4>New Hire Application</h4>
+            <p>Model tested against May–June open requisitions. HR estimate and model prediction compared to historical average for the same job × grade × location group.</p>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="method-card" style="margin-bottom:20px;">
+          <div class="chart-title" style="margin-bottom:16px;">Model Specifications</div>
+          <div class="spec-row"><span class="spec-key">Algorithm</span><span class="spec-val">Gradient Boosting / XGBoost / LightGBM / CatBoost</span></div>
+          <div class="spec-row"><span class="spec-key">Target Variable</span><span class="spec-val">log(Base Pay USD)</span></div>
+          <div class="spec-row"><span class="spec-key">Training Period</span><span class="spec-val">2021 – 2024</span></div>
+          <div class="spec-row"><span class="spec-key">Validation Period</span><span class="spec-val">2025</span></div>
+          <div class="spec-row"><span class="spec-key">Test Cohort</span><span class="spec-val">May – June 2026 Open Reqs</span></div>
+          <div class="spec-row"><span class="spec-key">Prediction Grain</span><span class="spec-val">Job Code × Grade × Location</span></div>
+          <div class="spec-row"><span class="spec-key">Performance Target</span><span class="spec-val">MAPE ≤ 5%</span></div>
+          <div class="spec-row"><span class="spec-key">Country Segmentation</span><span class="spec-val">One model per country</span></div>
+        </div>
+
+        <div class="method-card">
+          <div class="chart-title" style="margin-bottom:16px;">Glossary</div>
+          <div class="spec-row"><span class="spec-key">MAPE</span><span class="spec-val" style="font-family:'IBM Plex Sans',sans-serif;font-size:11px;max-width:200px;">Mean Absolute % Error — avg % distance between prediction and actual</span></div>
+          <div class="spec-row"><span class="spec-key">HR Estimate</span><span class="spec-val" style="font-family:'IBM Plex Sans',sans-serif;font-size:11px;max-width:200px;">Pay value entered by HR business partner at time of requisition</span></div>
+          <div class="spec-row"><span class="spec-key">Hist. Average</span><span class="spec-val" style="font-family:'IBM Plex Sans',sans-serif;font-size:11px;max-width:200px;">Median base pay for same job × grade × location in 2021–2025</span></div>
+          <div class="spec-row"><span class="spec-key">Variance %</span><span class="spec-val" style="font-family:'IBM Plex Sans',sans-serif;font-size:11px;max-width:200px;">(Model Prediction − HR Estimate) / HR Estimate × 100</span></div>
+          <div class="spec-row"><span class="spec-key">Bias</span><span class="spec-val" style="font-family:'IBM Plex Sans',sans-serif;font-size:11px;max-width:200px;">Signed avg error — indicates systematic over/under-prediction</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Limitations -->
+    <div class="insight-box">
+      <div class="insight-icon">⚠️</div>
+      <div class="insight-text">
+        <strong>Model limitations to disclose:</strong> Predictions for job × grade × location combinations
+        with fewer than 5 historical records fall back to a global median estimate and carry higher uncertainty.
+        The model does not account for individual candidate qualifications, market compression events, or
+        off-cycle pay adjustments. <strong>This model is a budgeting tool — final offer decisions remain
+        with HR and Finance leadership.</strong>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+</div><!-- /dashboard -->
+
+<footer class="site-footer">
+  FP&amp;A Intelligence Platform · New Hire Base Pay Prediction Model · Confidential — Internal Use Only
+</footer>
+
+<!-- ═══════════════════════════════════════════════════════════════════ SCRIPT -->
+<script>
+// ── STATE ─────────────────────────────────────────────────────────────────
+let RAW = [];         // all parsed rows
+let FILTERED = [];    // after filter bar
+let COLS = [];        // column headers from file
+let ringChart = null;
+let charts = {};
+
+// ── COLUMN MAPPING (flexible — detects your actual header names) ───────────
+const COL = {
+  reqId:      ['requisition id','req id','req_id','requisition_id','id'],
+  jobCode:    ['job code','job_code','job family','jobcode'],
+  grade:      ['compensation grade','comp grade','comp_grade','grade'],
+  location:   ['location','location code','location_code','loc'],
+  hrEstimate: ['hr estimate','hr estimate pay','hr_estimate','hr pay','hr_estimate_pay'],
+  modelPred:  ['model prediction','model pred','model_prediction','prediction','predicted pay','model_pred'],
+  histAvg:    ['historical average','hist average','hist_avg','historical avg','hist avg','historical_average'],
+  histMin:    ['historical min','hist min','hist_min','min pay','historical_min'],
+  histMax:    ['historical max','hist max','hist_max','max pay','historical_max'],
+};
+
+function detectCol(headers, candidates) {
+  const h = headers.map(x => x.toLowerCase().trim());
+  for (const c of candidates) {
+    const idx = h.indexOf(c);
+    if (idx !== -1) return headers[idx];
+  }
+  return null;
+}
+
+// ── FILE LOADING ──────────────────────────────────────────────────────────
+document.getElementById('file-input').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      let rows;
+      if (file.name.endsWith('.csv')) {
+        rows = parseCSV(ev.target.result);
+      } else {
+        const wb = XLSX.read(ev.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      }
+      if (!rows.length) { alert('File appears empty.'); return; }
+      RAW = rows;
+      COLS = Object.keys(rows[0]);
+      initDashboard();
+    } catch(err) {
+      alert('Could not parse file: ' + err.message);
+    }
+  };
+  if (file.name.endsWith('.csv')) reader.readAsText(file);
+  else reader.readAsArrayBuffer(file);
+});
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',').map(h => h.replace(/"/g,'').trim());
+  return lines.slice(1).map(line => {
+    const vals = line.split(',').map(v => v.replace(/"/g,'').trim());
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = isNaN(vals[i]) ? vals[i] : Number(vals[i]) || vals[i]);
+    return obj;
+  });
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+function initDashboard() {
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+
+  // Detect columns
+  window.C = {};
+  for (const [key, candidates] of Object.entries(COL)) {
+    C[key] = detectCol(COLS, candidates);
+  }
+
+  // Header meta
+  document.getElementById('header-date').textContent =
+    new Date().toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
+  document.getElementById('header-record-count').textContent =
+    RAW.length + ' requisitions loaded';
+
+  FILTERED = [...RAW];
+  populateFilters();
+  buildOverview();
+  buildAccuracy();
+  buildRequisitionTable(FILTERED);
+  populateMethodology();
+}
+
+// ── TAB NAVIGATION ────────────────────────────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).style.display = 'block';
+  event.target.classList.add('active');
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────
+function num(row, col) {
+  if (!col) return NaN;
+  const v = row[col];
+  return typeof v === 'number' ? v : parseFloat(String(v).replace(/[,$]/g,''));
+}
+function fmtMoney(v) {
+  if (isNaN(v)) return '—';
+  return '$' + Math.round(v).toLocaleString();
+}
+function fmtPct(v) {
+  if (isNaN(v)) return '—';
+  return (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
+}
+function mape(rows) {
+  // MAPE of model vs hist avg (if available), else model vs hr estimate
+  const anchor = C.histAvg || C.hrEstimate;
+  if (!anchor) return NaN;
+  const valids = rows.filter(r => {
+    const a = num(r, anchor), p = num(r, C.modelPred);
+    return !isNaN(a) && !isNaN(p) && a !== 0;
+  });
+  if (!valids.length) return NaN;
+  return valids.reduce((s,r) => {
+    const a = num(r, anchor), p = num(r, C.modelPred);
+    return s + Math.abs((p - a) / a);
+  }, 0) / valids.length * 100;
+}
+function variance(row) {
+  const m = num(row, C.modelPred), h = num(row, C.hrEstimate);
+  if (isNaN(m) || isNaN(h) || h === 0) return NaN;
+  return (m - h) / h * 100;
+}
+function absErrorModel(row) {
+  const anchor = C.histAvg || C.hrEstimate;
+  const a = num(row, anchor), m = num(row, C.modelPred);
+  if (isNaN(a) || isNaN(m) || a === 0) return NaN;
+  return Math.abs((m - a) / a) * 100;
+}
+function absErrorHR(row) {
+  const anchor = C.histAvg;
+  if (!anchor) return NaN;
+  const a = num(row, anchor), h = num(row, C.hrEstimate);
+  if (isNaN(a) || isNaN(h) || a === 0) return NaN;
+  return Math.abs((h - a) / a) * 100;
+}
+function groupBy(rows, col) {
+  const m = {};
+  rows.forEach(r => {
+    const k = col ? (r[col] || 'Unknown') : 'Unknown';
+    if (!m[k]) m[k] = [];
+    m[k].push(r);
+  });
+  return m;
+}
+function avg(arr) { return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : NaN; }
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+// ── OVERVIEW ──────────────────────────────────────────────────────────────
+function buildOverview() {
+  const totalReqs = FILTERED.length;
+  const overallMape = mape(FILTERED);
+  const metTarget = !isNaN(overallMape) && overallMape <= 5;
+
+  // Avg model prediction
+  const preds = FILTERED.map(r => num(r, C.modelPred)).filter(v => !isNaN(v));
+  const avgPred = avg(preds);
+
+  // Avg hr estimate
+  const hrs = FILTERED.map(r => num(r, C.hrEstimate)).filter(v => !isNaN(v));
+  const avgHr = avg(hrs);
+
+  // How many within 5%
+  const within5 = FILTERED.filter(r => {
+    const v = absErrorModel(r);
+    return !isNaN(v) && v <= 5;
+  }).length;
+
+  // KPI strip
+  const kpiData = [
+    { label: 'Total Requisitions', value: totalReqs.toLocaleString(), sub: 'May – June 2026', color: '' },
+    { label: 'Overall MAPE', value: isNaN(overallMape) ? '—' : overallMape.toFixed(2) + '%',
+      sub: 'vs ≤ 5% target',
+      badge: isNaN(overallMape) ? '' : (metTarget ? 'TARGET MET' : 'ABOVE TARGET'),
+      badgeClass: metTarget ? 'badge-green' : 'badge-red',
+      color: metTarget ? 'green' : 'red' },
+    { label: 'Avg Model Prediction', value: fmtMoney(avgPred), sub: 'Per requisition', color: '' },
+    { label: 'Avg HR Estimate', value: fmtMoney(avgHr), sub: 'Per requisition', color: '' },
+    { label: 'Within 5% Error', value: within5.toLocaleString(),
+      sub: Math.round(within5/totalReqs*100) + '% of requisitions',
+      color: within5/totalReqs > 0.8 ? 'green' : 'amber' },
+  ];
+  document.getElementById('kpi-strip').innerHTML = kpiData.map(k => `
+    <div class="kpi-card ${k.color}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-sub">${k.sub}</div>
+      ${k.badge ? `<div class="kpi-badge ${k.badgeClass}">${k.badge}</div>` : ''}
+    </div>`).join('');
+
+  // Accuracy ring
+  document.getElementById('ring-pct').textContent =
+    isNaN(overallMape) ? '—' : overallMape.toFixed(1) + '%';
+  const ringFill = isNaN(overallMape) ? 0 : Math.min(overallMape / 10 * 100, 100);
+  const ringColor = metTarget ? '#22863a' : (overallMape <= 8 ? '#d97706' : '#c0392b');
+  destroyChart('ring');
+  ringChart = new Chart(document.getElementById('accuracyRing'), {
+    type: 'doughnut',
+    data: {
+      datasets: [{
+        data: [ringFill, 100 - ringFill],
+        backgroundColor: [ringColor, '#E2E8F0'],
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      cutout: '72%', responsive: false,
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      animation: { animateRotate: true, duration: 1200 }
+    }
+  });
+  charts['ring'] = ringChart;
+
+  // Insight list
+  const insightItems = [
+    `<strong>${totalReqs.toLocaleString()} open requisitions</strong> evaluated across May–June 2026 cohort.`,
+    isNaN(overallMape) ? 'MAPE could not be computed — ensure model prediction and historical average columns are present.' :
+      `Model achieved <strong>${overallMape.toFixed(2)}% MAPE</strong> — ${metTarget ? 'meeting' : 'above'} the ≤ 5% budget accuracy target.`,
+    `<strong>${within5.toLocaleString()} requisitions (${Math.round(within5/totalReqs*100)}%)</strong> predicted within 5% of historical average.`,
+    avgPred && avgHr ? `Average model prediction of <strong>${fmtMoney(avgPred)}</strong> vs HR estimate of <strong>${fmtMoney(avgHr)}</strong> — a <strong>${fmtPct((avgPred-avgHr)/avgHr*100)}</strong> aggregate variance.` : '',
+  ].filter(Boolean);
+
+  document.getElementById('insight-list').innerHTML = insightItems.map(t =>
+    `<div style="display:flex;gap:10px;margin-bottom:14px;align-items:flex-start;">
+       <span style="color:var(--gold);font-size:16px;margin-top:1px;">›</span>
+       <span style="font-size:13px;color:var(--slate);line-height:1.7;">${t}</span>
+     </div>`).join('');
+
+  // Scatter chart
+  destroyChart('scatter');
+  const anchor = C.histAvg || C.hrEstimate;
+  const scatterData = FILTERED.map(r => ({
+    x: num(r, anchor),
+    y: num(r, C.modelPred)
+  })).filter(p => !isNaN(p.x) && !isNaN(p.y));
+
+  const scatterMax = Math.max(...scatterData.map(p => Math.max(p.x, p.y))) * 1.05;
+  charts['scatter'] = new Chart(document.getElementById('scatterChart'), {
+    type: 'scatter',
+    data: {
+      datasets: [
+        {
+          label: 'Model vs Historical Avg',
+          data: scatterData,
+          backgroundColor: 'rgba(11,31,58,0.25)',
+          pointRadius: 3,
+        },
+        {
+          label: 'Perfect Prediction',
+          data: [{x:0,y:0},{x:scatterMax,y:scatterMax}],
+          type: 'line',
+          borderColor: '#C9A84C',
+          borderDash: [4,4],
+          borderWidth: 1.5,
+          pointRadius: 0,
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { font: { family: 'IBM Plex Sans', size: 11 }, boxWidth: 12 } } },
+      scales: {
+        x: { title: { display: true, text: 'Historical Average ($)', font: { size: 11 } },
+             ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'k' } },
+        y: { title: { display: true, text: 'Model Prediction ($)', font: { size: 11 } },
+             ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'k' } }
+      }
+    }
+  });
+
+  // Variance histogram
+  destroyChart('varHist');
+  const variances = FILTERED.map(r => variance(r)).filter(v => !isNaN(v));
+  const bins = [-20,-15,-10,-5,0,5,10,15,20];
+  const counts = bins.map((lo, i) => {
+    const hi = bins[i+1] ?? 999;
+    return variances.filter(v => v >= lo && v < hi).length;
+  });
+  charts['varHist'] = new Chart(document.getElementById('varianceHistChart'), {
+    type: 'bar',
+    data: {
+      labels: bins.map((b,i) => bins[i+1] ? `${b} to ${bins[i+1]}%` : `>${b}%`),
+      datasets: [{
+        label: 'Requisitions',
+        data: counts,
+        backgroundColor: bins.map((b,i) => {
+          const mid = (b + (bins[i+1]??b+5)) / 2;
+          return Math.abs(mid) <= 5 ? 'rgba(34,134,58,0.7)' : 'rgba(192,57,43,0.55)';
+        }),
+        borderRadius: 3,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font: { size: 10 } } },
+        y: { ticks: { font: { size: 10 } }, title: { display: true, text: 'Count', font: { size: 11 } } }
+      }
+    }
+  });
+
+  // Grade chart
+  destroyChart('grade');
+  if (C.grade) {
+    const byGrade = groupBy(FILTERED, C.grade);
+    const gradeLabels = Object.keys(byGrade).sort();
+    const gradeMapes = gradeLabels.map(g => mape(byGrade[g]));
+    charts['grade'] = new Chart(document.getElementById('gradeChart'), {
+      type: 'bar',
+      data: {
+        labels: gradeLabels,
+        datasets: [{
+          label: 'MAPE %',
+          data: gradeMapes,
+          backgroundColor: gradeMapes.map(v => v <= 5 ? 'rgba(34,134,58,0.7)' : 'rgba(192,57,43,0.55)'),
+          borderRadius: 3,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          annotation: { annotations: { line1: { type:'line', yMin:5, yMax:5, borderColor:'#C9A84C', borderWidth:1.5, borderDash:[4,4] } } }
+        },
+        scales: { y: { ticks: { callback: v => v+'%' } } }
+      }
+    });
+  }
+
+  // Location donut
+  destroyChart('location');
+  if (C.location) {
+    const byLoc = groupBy(FILTERED, C.location);
+    const locLabels = Object.keys(byLoc).slice(0, 8);
+    const locCounts = locLabels.map(l => byLoc[l].length);
+    const palette = ['#0B1F3A','#1e3d6e','#C9A84C','#4A5568','#22863a','#d97706','#718096','#152d50'];
+    charts['location'] = new Chart(document.getElementById('locationChart'), {
+      type: 'doughnut',
+      data: {
+        labels: locLabels,
+        datasets: [{ data: locCounts, backgroundColor: palette, borderWidth: 2, borderColor: '#fff' }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'right', labels: { font: { family:'IBM Plex Sans', size:11 }, boxWidth:12 } } }
+      }
+    });
+  }
+}
+
+// ── ACCURACY TAB ──────────────────────────────────────────────────────────
+function buildAccuracy() {
+  const overallMape = mape(FILTERED);
+  const modelWins = FILTERED.filter(r => absErrorModel(r) < absErrorHR(r)).length;
+  const pctWins = Math.round(modelWins / FILTERED.length * 100);
+
+  document.getElementById('accuracy-insight-text').innerHTML =
+    `The model outperforms HR estimates on <strong>${modelWins.toLocaleString()} of ${FILTERED.length.toLocaleString()} requisitions (${pctWins}%)</strong> when measured against historical average.
+    ${!isNaN(overallMape) ? ` Overall MAPE of <strong>${overallMape.toFixed(2)}%</strong> ${overallMape<=5?'meets':'exceeds'} the 5% budget accuracy target.` : ''}
+    Grades and locations with the highest error may warrant additional data collection or manual review.`;
+
+  // MAPE by grade
+  destroyChart('mapeGrade');
+  if (C.grade) {
+    const byGrade = groupBy(FILTERED, C.grade);
+    const gl = Object.keys(byGrade).sort();
+    const gm = gl.map(g => mape(byGrade[g]));
+    charts['mapeGrade'] = new Chart(document.getElementById('mapeByGradeChart'), {
+      type: 'bar',
+      data: {
+        labels: gl,
+        datasets: [{ label: 'MAPE %', data: gm,
+          backgroundColor: gm.map(v => v <= 5 ? 'rgba(34,134,58,0.7)' : 'rgba(192,57,43,0.55)'),
+          borderRadius: 4 }]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { ticks: { callback: v => v+'%' } } }
+      }
+    });
+  }
+
+  // MAPE by location
+  destroyChart('mapeLoc');
+  if (C.location) {
+    const byLoc = groupBy(FILTERED, C.location);
+    const ll = Object.keys(byLoc).sort();
+    const lm = ll.map(l => mape(byLoc[l]));
+    charts['mapeLoc'] = new Chart(document.getElementById('mapeByLocChart'), {
+      type: 'bar',
+      data: {
+        labels: ll,
+        datasets: [{ label: 'MAPE %', data: lm,
+          backgroundColor: lm.map(v => v <= 5 ? 'rgba(34,134,58,0.7)' : 'rgba(192,57,43,0.55)'),
+          borderRadius: 4 }]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { ticks: { callback: v => v+'%' } } }
+      }
+    });
+  }
+
+  // Model vs HR wins
+  destroyChart('modelVsHr');
+  const hrWins = FILTERED.filter(r => absErrorHR(r) < absErrorModel(r)).length;
+  const tie = FILTERED.length - modelWins - hrWins;
+  charts['modelVsHr'] = new Chart(document.getElementById('modelVsHrChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Model closer to Hist. Avg', 'HR Estimate closer', 'Tie / No Hist. Data'],
+      datasets: [{ data: [modelWins, hrWins, tie],
+        backgroundColor: ['rgba(34,134,58,0.8)','rgba(192,57,43,0.7)','rgba(201,168,76,0.6)'],
+        borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } } }
+    }
+  });
+
+  // Bias by grade
+  destroyChart('bias');
+  if (C.grade) {
+    const anchor = C.histAvg || C.hrEstimate;
+    const byGrade = groupBy(FILTERED, C.grade);
+    const gl = Object.keys(byGrade).sort();
+    const biases = gl.map(g => {
+      const vals = byGrade[g].map(r => {
+        const a = num(r, anchor), m = num(r, C.modelPred);
+        return (!isNaN(a) && !isNaN(m) && a !== 0) ? (m - a) / a * 100 : NaN;
+      }).filter(v => !isNaN(v));
+      return avg(vals);
+    });
+    charts['bias'] = new Chart(document.getElementById('biasChart'), {
+      type: 'bar',
+      data: {
+        labels: gl,
+        datasets: [{ label: 'Avg Signed Error %', data: biases,
+          backgroundColor: biases.map(v => v >= 0 ? 'rgba(201,168,76,0.75)' : 'rgba(30,61,110,0.75)'),
+          borderRadius: 4 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { ticks: { callback: v => v.toFixed(1)+'%' } } }
+      }
+    });
+  }
+
+  // MAPE by job code (top 20 ascending)
+  destroyChart('mapeJob');
+  if (C.jobCode) {
+    const byJob = groupBy(FILTERED, C.jobCode);
+    const entries = Object.entries(byJob)
+      .map(([k, v]) => ({ k, m: mape(v) }))
+      .filter(x => !isNaN(x.m))
+      .sort((a, b) => a.m - b.m)
+      .slice(0, 20);
+    charts['mapeJob'] = new Chart(document.getElementById('mapeByJobChart'), {
+      type: 'bar',
+      data: {
+        labels: entries.map(x => x.k),
+        datasets: [{ label: 'MAPE %', data: entries.map(x => x.m),
+          backgroundColor: entries.map(x => x.m <= 5 ? 'rgba(34,134,58,0.7)' : 'rgba(192,57,43,0.55)'),
+          borderRadius: 4 }]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { ticks: { callback: v => v+'%' } } }
+      }
+    });
+  }
+}
+
+// ── FILTERS ───────────────────────────────────────────────────────────────
+function populateFilters() {
+  function opts(col, elId) {
+    if (!col) return;
+    const vals = [...new Set(RAW.map(r => r[col]).filter(Boolean))].sort();
+    const el = document.getElementById(elId);
+    vals.forEach(v => {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = v;
+      el.appendChild(o);
+    });
+  }
+  opts(C.grade, 'filter-grade');
+  opts(C.location, 'filter-location');
+  opts(C.jobCode, 'filter-job');
+}
+
+function applyFilters() {
+  const g  = document.getElementById('filter-grade').value;
+  const l  = document.getElementById('filter-location').value;
+  const j  = document.getElementById('filter-job').value;
+  const vt = parseFloat(document.getElementById('filter-variance').value);
+  FILTERED = RAW.filter(r => {
+    if (g && C.grade    && r[C.grade]    != g) return false;
+    if (l && C.location && r[C.location] != l) return false;
+    if (j && C.jobCode  && r[C.jobCode]  != j) return false;
+    if (!isNaN(vt)) {
+      const v = Math.abs(variance(r));
+      if (isNaN(v) || v < vt) return false;
+    }
+    return true;
+  });
+  document.getElementById('filter-count').textContent =
+    FILTERED.length + ' of ' + RAW.length + ' records';
+  buildRequisitionTable(FILTERED);
+}
+
+function resetFilters() {
+  document.getElementById('filter-grade').value = '';
+  document.getElementById('filter-location').value = '';
+  document.getElementById('filter-job').value = '';
+  document.getElementById('filter-variance').value = '';
+  FILTERED = [...RAW];
+  document.getElementById('filter-count').textContent = '';
+  buildRequisitionTable(FILTERED);
+}
+
+// ── REQUISITION TABLE ─────────────────────────────────────────────────────
+let sortCol = null, sortDir = 1;
+
+function buildRequisitionTable(rows) {
+  document.getElementById('table-header-title').textContent =
+    rows.length.toLocaleString() + ' Requisitions';
+
+  // Build thead
+  const thead = document.getElementById('req-thead');
+  const displayCols = COLS.slice(0, 12); // show up to 12 columns
+  thead.innerHTML = `<tr>${displayCols.map(c =>
+    `<th onclick="sortTable('${c}')" class="${sortCol===c?'sorted':''}">${c}${sortCol===c?(sortDir===1?' ↑':' ↓'):''}</th>`
+  ).join('')}<th>Variance %</th><th>vs Hist Avg</th></tr>`;
+
+  // Build tbody
+  const tbody = document.getElementById('req-tbody');
+  tbody.innerHTML = rows.slice(0, 500).map(r => {
+    const v   = variance(r);
+    const ae  = absErrorModel(r);
+    const pillClass = isNaN(v) ? '' : Math.abs(v)<=5?'pill-green':Math.abs(v)<=10?'pill-amber':'pill-red';
+    const aeClass   = isNaN(ae) ? '' : ae<=5?'pill-green':ae<=10?'pill-amber':'pill-red';
+    return `<tr>${displayCols.map(c => {
+      const val = r[c];
+      const isNum = typeof val === 'number';
+      // Currency columns
+      const isMoney = C.modelPred===c||C.hrEstimate===c||C.histAvg===c||C.histMin===c||C.histMax===c;
+      return `<td class="${c===C.reqId||c===C.jobCode?'label-col':''}">${isMoney&&isNum?fmtMoney(val):val??'—'}</td>`;
+    }).join('')}
+    <td>${isNaN(v)?'—':`<span class="variance-pill ${pillClass}">${fmtPct(v)}</span>`}</td>
+    <td>${isNaN(ae)?'—':`<span class="variance-pill ${aeClass}">${ae.toFixed(1)}%</span>`}</td>
+    </tr>`;
+  }).join('');
+
+  if (rows.length > 500) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="${displayCols.length+2}" style="text-align:center;padding:16px;color:var(--slate-light);font-style:italic;">
+      Showing 500 of ${rows.length.toLocaleString()} rows. Export CSV for full dataset.
+    </td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+function sortTable(col) {
+  if (sortCol === col) sortDir *= -1;
+  else { sortCol = col; sortDir = 1; }
+  FILTERED.sort((a, b) => {
+    const av = a[col], bv = b[col];
+    if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * sortDir;
+    return String(av??'').localeCompare(String(bv??'')) * sortDir;
+  });
+  buildRequisitionTable(FILTERED);
+}
+
+function exportTable() {
+  const rows = FILTERED.map(r => {
+    const out = { ...r };
+    out['Variance % (Model vs HR)'] = isNaN(variance(r)) ? '' : variance(r).toFixed(2) + '%';
+    out['Abs Error vs Hist Avg %']  = isNaN(absErrorModel(r)) ? '' : absErrorModel(r).toFixed(2) + '%';
+    return out;
+  });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Predictions');
+  XLSX.writeFile(wb, 'salary_predictions_export.xlsx');
+}
+
+// ── METHODOLOGY ───────────────────────────────────────────────────────────
+function populateMethodology() {
+  // nothing dynamic needed — static content already in HTML
+}
+
+// ── SET HEADER DATE ───────────────────────────────────────────────────────
+document.getElementById('header-date').textContent =
+  new Date().toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
+
+</script>
+</body>
+</html>
